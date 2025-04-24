@@ -412,14 +412,14 @@ List cSparseBCF(NumericVector y_, NumericVector z_,
 	treef_mu << xi_con   << std::endl; //cutpoints
 	treef_mu << ntree_con << std::endl;  //number of trees
 	treef_mu << p_con << std::endl;  //dimension of x's
-	treef_mu << (int)(nd / thin) << std::endl;
+	treef_mu << (int)(nd) << std::endl; // EDITED FORMERLY nd/thin
 
 
   // Write tau(x) tree to file
   treef_tau << xi_mod << std::endl; //cutpoints
   treef_tau << ntree_mod << std::endl;  //number of trees
   treef_tau << p_mod << std::endl;  //dimension of x's
-  treef_tau << (int)(nd / thin) << std::endl;
+  treef_tau << (int)(nd) << std::endl; // EDITED FORMERLY nd/thin
 
 
 
