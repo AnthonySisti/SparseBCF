@@ -68,7 +68,7 @@ Rcpp::loadModule(module = "TreeSamples", TRUE)
 #' @param x_control Design matrix for the "prognostic" function mu(x)
 #' @param x_moderate Design matrix for the covariate-dependent treatment effects tau(x)
 #' @param pihat Length n estimates of Propensity Score
-#' @param OOB Boolean for Out-of-Sample prediction of mu(x,pi) and CATE (default is FALSE)
+#' @param OOB Boolean for Out-of-Sample prediction of mu(x,pi) and CATE (default is FALSE). Set to TRUE if predictions should be made on the test-set.
 #' @param x_pred_mu Design test-set matrix X for OOB prediction
 #' @param pi_pred Length n predicted Propensity Score for test-set matrix X
 #' @param x_pred_tau Design test-set matrix X for OOB prediction
@@ -81,6 +81,7 @@ Rcpp::loadModule(module = "TreeSamples", TRUE)
 #' @param weights_tau Vector of informative weights for tau(x). Length must be P
 #' @param save_trees_mu_dir File where trees info are saved for OOB_mu prediction. If unspecified a temporary file is used, then deleted
 #' @param save_trees_tau_dir File where trees info are saved for OOB_tau prediction. If unspecified a temporary file is used, then deleted
+#' @param keep_trees Boolean for whether to save trees to directory (default is TRUE)
 #' @param nburn Number of burn-in MCMC iterations
 #' @param nsim Number of MCMC iterations to save after burn-in
 #' @param nthin Save every nthin'th MCMC iterate. The total number of MCMC iterations will be nsim*nthin + nburn.
@@ -235,7 +236,8 @@ SparseBCF <-
            rho_mu=NULL,
            rho_tau = NULL,
            augment=FALSE,
-           include_pi = "control", use_muscale=TRUE, use_tauscale=TRUE
+           include_pi = "control", use_muscale=TRUE, use_tauscale=TRUE,
+           keep_trees = TRUE
 ) {
 
   pihat = as.matrix(pihat)
@@ -341,8 +343,12 @@ SparseBCF <-
 
 
   # Saving forest for OOB_tau prediction
-  save_trees_mu_dir = tempfile(pattern = "forest_mu", fileext = ".txt")
-  save_trees_tau_dir = tempfile(pattern = "forest_tau", fileext = ".txt")
+  save_trees_mu_dir_temp = tempfile(pattern = "forest_mu", fileext = ".txt")
+  save_trees_mu_dir =paste(save_trees_mu_dir,"/forest_mu_",
+                           format(Sys.time(),"%Y_%m_%d_%H_%M_%S"), ".txt",sep="")
+  save_trees_tau_dir_temp = tempfile(pattern = "forest_tau", fileext = ".txt")
+  save_trees_tau_dir =paste(save_trees_tau_dir,"/forest_tau_",
+                            format(Sys.time(),"%Y_%m_%d_%H_%M_%S"), ".txt",sep="")
 
   perm = order(z, decreasing=TRUE)
 
@@ -365,8 +371,8 @@ SparseBCF <-
                       omega,
                       weights_mu,
                       weights_tau,
-                      save_trees_mu_dir,
-                      save_trees_tau_dir,
+                      save_trees_mu_dir_temp,
+                      save_trees_tau_dir_temp,
                       dart=sparse,
                       aug=augment,
                       status_interval = update_interval,
@@ -385,9 +391,13 @@ SparseBCF <-
 
   # if no OOB is specified
   if (OOB == F) {
-
-    file.remove(save_trees_mu_dir)
-    file.remove(save_trees_tau_dir)
+    if(keep_trees){
+      file.copy(save_trees_tau_dir_temp,save_trees_tau_dir)
+      file.copy(save_trees_mu_dir_temp,save_trees_mu_dir)
+    }
+    
+    file.remove(save_trees_mu_dir_temp)
+    file.remove(save_trees_tau_dir_temp)
     
     # Returns
     return(
@@ -403,7 +413,11 @@ SparseBCF <-
            varcnt_mu = fitbcf$varcnt_con,
            varprb_mu = fitbcf$varprb_con,
            varcnt_tau = fitbcf$varcnt_mod,
-           varprb_tau = fitbcf$varprb_mod
+           varprb_tau = fitbcf$varprb_mod,
+           sdy = sdy,
+           muy = muy,
+           tau_trees = ifelse(keep_trees, save_trees_tau_dir,NA),
+           mu_trees = ifelse(keep_trees, save_trees_mu_dir,NA)
       )
     )
 
@@ -418,7 +432,7 @@ SparseBCF <-
     cat("OOB predicting tau(x)\n")
 
     ts_tau = TreeSamples$new()
-    ts_tau$load(save_trees_tau_dir)
+    ts_tau$load(save_trees_tau_dir_temp)
 
     insam_tau = ts_tau$predict(t(x_pred_tau))
     tau_pred = sdy*(fitbcf$bscale1 - fitbcf$bscale0)*insam_tau
@@ -430,10 +444,15 @@ SparseBCF <-
     x_pred_mu = cbind(x_pred_mu, as.matrix(pi_pred))
 
     ts_mu = TreeSamples$new()
-    ts_mu$load(save_trees_mu_dir)
+    ts_mu$load(save_trees_mu_dir_temp)
 
     Tc_pred = ts_mu$predict(t(x_pred_mu))
     mu_pred  = muy + sdy*(Tc_pred*fitbcf$msd + insam_tau*fitbcf$bscale0)
+    
+    if(keep_trees){
+      file.copy(save_trees_tau_dir_temp,save_trees_tau_dir)
+      file.copy(save_trees_mu_dir_temp,save_trees_mu_dir)
+    }
 
     # Returns
     return(
@@ -451,16 +470,80 @@ SparseBCF <-
            varcnt_mu = fitbcf$varcnt_con,
            varprb_mu = fitbcf$varprb_con,
            varcnt_tau = fitbcf$varcnt_mod,
-           varprb_tau = fitbcf$varprb_mod
+           varprb_tau = fitbcf$varprb_mod,
+           sdy = sdy,
+           muy = muy,
+           tau_trees = ifelse(keep_trees, save_trees_tau_dir,NA),
+           mu_trees = ifelse(keep_trees, save_trees_mu_dir,NA)
       )
     )
 
     rm(ts_mu, ts_tau)
-    file.remove(save_trees_mu_dir)
-    file.remove(save_trees_tau_dir)
+    file.remove(save_trees_mu_dir_temp)
+    file.remove(save_trees_tau_dir_temp)
 
   }
 
 
 
+}
+
+
+
+
+#' Takes a fitted SparseBCF object and produces predictions for a new set of covariate values
+#' 
+#' This function requires that you indicate where the trees from the model fit are saved. By default, 
+#' You can do so by specifying the save_tree_directory argument in SparseBCF().
+#' @param model output from SparseBCF
+#' @param x_predict_control matrix of covariates for the "prognostic" function mu(x) for predictions (optional)
+#' @param x_predict_moderate matrix of covariates for the covariate-dependent treatment effects tau(x) for predictions (optional)
+#' @param pi_pred propensity score for prediction
+#' @param type either "tau" or "mu" to indicate which type of prediction should be made
+#' @export
+predict_SparseBCF <- function(model,
+                              x_predict_moderate,
+                              x_predict_control = x_predict_moderate,
+                              pi_pred = rep(1, nrow(x_predict_control)),
+                              type="tau"){
+  
+
+  
+  if(is.na(model$tau_trees)&type=="tau") stop("No tau tree samples were serialized during sampling. To enable prediction, re-run SparseBCF with keep_trees = TRUE \n")
+  if(is.na(model$mu_trees)& type=="mu") stop("No tau tree samples were serialized during sampling. To enable prediction, re-run SparseBCF with keep_trees = TRUE \n")
+  
+  
+  
+  if(type == "tau"){
+    if(any(is.na(x_predict_moderate))) stop("Missing values in x_predict_moderate")
+    if(any(!is.finite(x_predict_moderate))) stop("Non-numeric values in x_pred_moderate")
+    
+    x_pred_tau =  data.matrix(x_predict_moderate)
+    
+    ts_tau = TreeSamples$new()
+    ts_tau$load(model$tau_trees)
+    insam_tau = ts_tau$predict(t(x_pred_tau))
+    scale_pred =  (model$sdy*(model$bscale1 - model$bscale0))
+    tau_pred = scale_pred*insam_tau
+    
+    return(tau_pred)
+  }else if(type=="mu"){
+    
+    if(any(is.na(x_predict_control))) stop("Missing values in x_predict_control")
+    if(any(!is.finite(x_predict_control))) stop("Non-numeric values in x_pred_control")
+    if(any(!is.finite(pi_pred))) stop("Non-numeric values in pi_pred")
+    
+    x_pred_mu = data.matrix(cbind(new_X,new_pi))
+    
+    ts_mu = TreeSamples$new()
+    ts_mu$load(model$mu_trees)
+    
+    Tc_pred = ts_mu$predict(t(x_pred_mu))
+    mu_pred  = model$muy + model$sdy*(Tc_pred*model$msd + insam_tau*model$bscale0)
+    return(mu_pred)
+  }else{
+    stop(print("type must be 'mu' or 'tau'" ))
+    
+  }
+  
 }

@@ -11,8 +11,9 @@ SparseBCF(
   x_moderate = x_control,
   pihat,
   OOB = FALSE,
-  x_pred,
-  z_pred,
+  x_pred_mu = NULL,
+  pi_pred = NULL,
+  x_pred_tau = NULL,
   sparse = TRUE,
   a = 0.5,
   b = 1,
@@ -20,7 +21,8 @@ SparseBCF(
   weights_mu = NULL,
   inform_tau = FALSE,
   weights_tau = NULL,
-  save_trees_dir,
+  save_trees_mu_dir,
+  save_trees_tau_dir,
   nburn,
   nsim,
   nthin = 1,
@@ -44,7 +46,8 @@ SparseBCF(
   augment = FALSE,
   include_pi = "control",
   use_muscale = TRUE,
-  use_tauscale = TRUE
+  use_tauscale = TRUE,
+  keep_trees = TRUE
 )
 }
 \arguments{
@@ -56,13 +59,15 @@ SparseBCF(
 
 \item{x_moderate}{Design matrix for the covariate-dependent treatment effects tau(x)}
 
-\item{pihat}{Length n estimates of}
+\item{pihat}{Length n estimates of Propensity Score}
 
-\item{OOB}{Boolean for Out-of-Bag prediction of CATE (default is FALSE)}
+\item{OOB}{Boolean for Out-of-Sample prediction of mu(x,pi) and CATE (default is FALSE). Set to TRUE if predictions should be made on the test-set.}
 
-\item{x_pred}{Design test-set matrix X for OOB prediction}
+\item{x_pred_mu}{Design test-set matrix X for OOB prediction}
 
-\item{z_pred}{Binary test-set treatment vector for OOB prediction}
+\item{pi_pred}{Length n predicted Propensity Score for test-set matrix X}
+
+\item{x_pred_tau}{Design test-set matrix X for OOB prediction}
 
 \item{sparse}{Boolean for implementing Sparse BCF (default is TRUE). sparse=FALSE implements default BCF}
 
@@ -78,7 +83,9 @@ SparseBCF(
 
 \item{weights_tau}{Vector of informative weights for tau(x). Length must be P}
 
-\item{save_trees_dir}{File where trees info are saved for OOB prediction. If unspecified a temporary file is used, then deleted}
+\item{save_trees_mu_dir}{File where trees info are saved for OOB_mu prediction. If unspecified a temporary file is used, then deleted}
+
+\item{save_trees_tau_dir}{File where trees info are saved for OOB_tau prediction. If unspecified a temporary file is used, then deleted}
 
 \item{nburn}{Number of burn-in MCMC iterations}
 
@@ -129,6 +136,8 @@ or "both" are HIGHLY recommended with observational data.}
 \item{use_muscale}{Use a half-Cauchy hyperprior on the scale of mu.}
 
 \item{use_tauscale}{Use a half-Normal prior on the scale of tau.}
+
+\item{keep_trees}{Boolean for whether to save trees to directory (default is TRUE)}
 }
 \value{
 A list with elements
@@ -166,6 +175,7 @@ Some notes:
 \donttest{
 
 # data generating process
+library(SparseBCF)
 p = 10    # control and moderating variables
 n = 250
 #
@@ -196,7 +206,7 @@ y = mu + sigma*rnorm(n)
 pihat = pnorm(q)
 
 # Higher number of MCMC iterations is recommended; here it is just 4000 for time complexity
-SparseBCF_fit = SparseBCF(y, z, x, x, pihat, nburn=2000, nsim=2000)
+SparseBCF_fit = SparseBCF(y = y, z = z, x_control = x, pihat = pihat, nburn=2000, nsim=2000)
 
 # Get posterior of treatment effects
 tau_post = SparseBCF_fit$tau
@@ -214,6 +224,7 @@ barplot(SplitProb_tau)
 \dontshow{
 
 # data generating process
+library(SparseBCF)
 p = 10    # control and moderating variables
 n = 250
 #
@@ -244,7 +255,7 @@ y = mu + sigma*rnorm(n)
 pihat = pnorm(q)
 
 # Higher number of MCMC iterations is recommended; here it is just 4000 for time complexity
-SparseBCF_fit = SparseBCF(y, z, x, x, pihat, nburn=10, nsim=10)
+SparseBCF_fit = SparseBCF(y = y, z = z, x_control = x, pihat = pihat, nburn=2000, nsim=2000)
 
 # Get posterior of treatment effects
 tau_post = SparseBCF_fit$tau
