@@ -220,7 +220,8 @@ SparseBCF <-
            sparse=TRUE, a=0.5, b=1,
            inform_mu = FALSE, weights_mu = NULL,
            inform_tau = FALSE, weights_tau = NULL,
-           save_trees_mu_dir, save_trees_tau_dir,
+           save_trees_mu_dir = NULL, 
+           save_trees_tau_dir = NULL,
            nburn, nsim, nthin = 1, update_interval = 1000,
            ntree_control = 200,
            sd_control = 2*sd(y),
@@ -263,6 +264,8 @@ SparseBCF <-
   if(any(is.na(x_control))) stop("Missing values in x_control")
   if(any(is.na(x_moderate))) stop("Missing values in x_moderate")
   if(any(is.na(pihat))) stop("Missing values in pihat")
+  if(is.null(save_trees_mu_dir) &keep_trees==TRUE) stop("keep_trees is TRUE but save_trees_mu_dir is NULL")
+  if(is.null(save_trees_tau_dir) &keep_trees==TRUE) stop("keep_trees is TRUE but save_trees_tau_dir is NULL")
 
   if(any(!is.finite(y))) stop("Non-numeric values in y")
   if(any(!is.finite(z))) stop("Non-numeric values in z")
@@ -344,11 +347,13 @@ SparseBCF <-
 
   # Saving forest for OOB_tau prediction
   save_trees_mu_dir_temp = tempfile(pattern = "forest_mu", fileext = ".txt")
+  save_trees_tau_dir_temp = tempfile(pattern = "forest_tau", fileext = ".txt")
+  
+  if(keep_trees==TRUE){
   save_trees_mu_dir =paste(save_trees_mu_dir,"/forest_mu_",
                            format(Sys.time(),"%Y_%m_%d_%H_%M_%S"), ".txt",sep="")
-  save_trees_tau_dir_temp = tempfile(pattern = "forest_tau", fileext = ".txt")
   save_trees_tau_dir =paste(save_trees_tau_dir,"/forest_tau_",
-                            format(Sys.time(),"%Y_%m_%d_%H_%M_%S"), ".txt",sep="")
+                            format(Sys.time(),"%Y_%m_%d_%H_%M_%S"), ".txt",sep="")}
 
   perm = order(z, decreasing=TRUE)
 
