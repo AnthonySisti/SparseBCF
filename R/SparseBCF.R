@@ -538,7 +538,7 @@ predict_SparseBCF <- function(model,
     if(any(!is.finite(x_predict_control))) stop("Non-numeric values in x_pred_control")
     if(any(!is.finite(pi_pred))) stop("Non-numeric values in pi_pred")
     
-    x_pred_mu = data.matrix(cbind(new_X,new_pi))
+    x_pred_mu = data.matrix(cbind(x_predict_control,new_pi))
     
     ts_mu = TreeSamples$new()
     ts_mu$load(model$mu_trees)
