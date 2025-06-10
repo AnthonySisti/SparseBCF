@@ -553,6 +553,8 @@ predict_SparseBCF <- function(model,
     
     ts_mu = TreeSamples$new()
     ts_mu$load(model$mu_trees)
+     ts_tau = TreeSamples$new()
+    ts_tau$load(model$tau_trees)
     insam_tau = ts_tau$predict(t(x_pred_tau))
 
     
