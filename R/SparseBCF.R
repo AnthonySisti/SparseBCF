@@ -505,7 +505,7 @@ SparseBCF <-
 #' @param model output from SparseBCF
 #' @param x_predict_control matrix of covariates for the "prognostic" function mu(x) for predictions (optional)
 #' @param x_predict_moderate matrix of covariates for the covariate-dependent treatment effects tau(x) for predictions (optional)
-#' @param pi_pred propensity score for prediction
+#' @param pihat_pred propensity score for prediction
 #' @param type either "tau" or "mu" to indicate which type of prediction should be made
 #' @export
 predict_SparseBCF <- function(model,
@@ -542,7 +542,7 @@ predict_SparseBCF <- function(model,
     
     if(any(is.na(x_predict_control))) stop("Missing values in x_predict_control")
     if(any(!is.finite(x_predict_control))) stop("Non-numeric values in x_pred_control")
-    if(any(!is.finite(pi_pred))) stop("Non-numeric values in pi_pred")
+    if(any(!is.finite(pihat_pred))) stop("Non-numeric values in pihat_pred")
 
       if(include_pi=="both" | include_pi=="control") {
         x_pred_mu = data.matrix(cbind(x_predict_control,pihat_pred))
