@@ -422,7 +422,8 @@ SparseBCF <-
            sdy = sdy,
            muy = muy,
            tau_trees = ifelse(keep_trees, save_trees_tau_dir,NA),
-           mu_trees = ifelse(keep_trees, save_trees_mu_dir,NA)
+           mu_trees = ifelse(keep_trees, save_trees_mu_dir,NA),
+           include_pi = include_pi
       )
     )
 
@@ -479,7 +480,8 @@ SparseBCF <-
            sdy = sdy,
            muy = muy,
            tau_trees = ifelse(keep_trees, save_trees_tau_dir,NA),
-           mu_trees = ifelse(keep_trees, save_trees_mu_dir,NA)
+           mu_trees = ifelse(keep_trees, save_trees_mu_dir,NA),
+           include_pi = include_pi
       )
     )
 
@@ -509,7 +511,7 @@ SparseBCF <-
 predict_SparseBCF <- function(model,
                               x_predict_moderate,
                               x_predict_control = x_predict_moderate,
-                              pi_pred = rep(1, nrow(x_predict_control)),
+                              pihat_pred = rep(1, nrow(x_predict_control)),
                               type="tau"){
   
 
@@ -517,13 +519,17 @@ predict_SparseBCF <- function(model,
   if(is.na(model$tau_trees)&type=="tau") stop("No tau tree samples were serialized during sampling. To enable prediction, re-run SparseBCF with keep_trees = TRUE \n")
   if(is.na(model$mu_trees)& type=="mu") stop("No tau tree samples were serialized during sampling. To enable prediction, re-run SparseBCF with keep_trees = TRUE \n")
   
-  
+  include_pi <- model$include_pi
   
   if(type == "tau"){
     if(any(is.na(x_predict_moderate))) stop("Missing values in x_predict_moderate")
     if(any(!is.finite(x_predict_moderate))) stop("Non-numeric values in x_pred_moderate")
-    
-    x_pred_tau =  data.matrix(x_predict_moderate)
+
+  if(include_pi=="both" | include_pi=="moderate") {
+   x_pred_tau  = data.matrix(cbind(x_predict_moderate, pihat_pred))
+  } else{
+    x_pred_tau  = data.matrix(x_predict_moderate) }
+
     
     ts_tau = TreeSamples$new()
     ts_tau$load(model$tau_trees)
@@ -537,8 +543,12 @@ predict_SparseBCF <- function(model,
     if(any(is.na(x_predict_control))) stop("Missing values in x_predict_control")
     if(any(!is.finite(x_predict_control))) stop("Non-numeric values in x_pred_control")
     if(any(!is.finite(pi_pred))) stop("Non-numeric values in pi_pred")
-    
-    x_pred_mu = data.matrix(cbind(x_predict_control,new_pi))
+
+      if(include_pi=="both" | include_pi=="control") {
+        x_pred_mu = data.matrix(cbind(x_predict_control,pihat_pred))
+      } else{
+        x_pred_mu = data.matrix(x_predict_control) }
+
     
     ts_mu = TreeSamples$new()
     ts_mu$load(model$mu_trees)
