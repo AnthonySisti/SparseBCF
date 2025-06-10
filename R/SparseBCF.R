@@ -423,7 +423,8 @@ SparseBCF <-
            muy = muy,
            tau_trees = ifelse(keep_trees, save_trees_tau_dir,NA),
            mu_trees = ifelse(keep_trees, save_trees_mu_dir,NA),
-           include_pi = include_pi
+           include_pi = include_pi,
+           msd = fit_bcf$msd
       )
     )
 
@@ -481,7 +482,8 @@ SparseBCF <-
            muy = muy,
            tau_trees = ifelse(keep_trees, save_trees_tau_dir,NA),
            mu_trees = ifelse(keep_trees, save_trees_mu_dir,NA),
-           include_pi = include_pi
+           include_pi = include_pi,
+           msd = fit_bcf$msd
       )
     )
 
