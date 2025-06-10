@@ -519,17 +519,18 @@ predict_SparseBCF <- function(model,
   if(is.na(model$tau_trees)&type=="tau") stop("No tau tree samples were serialized during sampling. To enable prediction, re-run SparseBCF with keep_trees = TRUE \n")
   if(is.na(model$mu_trees)& type=="mu") stop("No tau tree samples were serialized during sampling. To enable prediction, re-run SparseBCF with keep_trees = TRUE \n")
   
-  include_pi <- model$include_pi
+  include_pi <- model$include_pi 
   
-  if(type == "tau"){
-    if(any(is.na(x_predict_moderate))) stop("Missing values in x_predict_moderate")
-    if(any(!is.finite(x_predict_moderate))) stop("Non-numeric values in x_pred_moderate")
-
+  
   if(include_pi=="both" | include_pi=="moderate") {
    x_pred_tau  = data.matrix(cbind(x_predict_moderate, pihat_pred))
   } else{
     x_pred_tau  = data.matrix(x_predict_moderate) }
-
+  
+  
+  if(type == "tau"){
+    if(any(is.na(x_predict_moderate))) stop("Missing values in x_predict_moderate")
+    if(any(!is.finite(x_predict_moderate))) stop("Non-numeric values in x_pred_moderate")
     
     ts_tau = TreeSamples$new()
     ts_tau$load(model$tau_trees)
@@ -552,6 +553,8 @@ predict_SparseBCF <- function(model,
     
     ts_mu = TreeSamples$new()
     ts_mu$load(model$mu_trees)
+    insam_tau = ts_tau$predict(t(x_pred_tau))
+
     
     Tc_pred = ts_mu$predict(t(x_pred_mu))
     mu_pred  = model$muy + model$sdy*(Tc_pred*model$msd + insam_tau*model$bscale0)
